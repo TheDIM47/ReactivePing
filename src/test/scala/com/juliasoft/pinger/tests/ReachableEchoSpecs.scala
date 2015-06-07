@@ -10,7 +10,7 @@ import org.scalatest._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class ReachablePingSpecs extends FunSuite with StrictLogging {
+class ReachableEchoSpecs extends FunSuite with StrictLogging {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   test("case 1: ReachableEcho should successfully resolve localhost") {

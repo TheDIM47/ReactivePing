@@ -13,7 +13,7 @@ import scala.util.{Success, Try}
 
 object Pinger {
 
-  val timeout = 60 * 1000
+  // val timeout = 60 * 1000
 
   case class Ping(address: URI)
 
@@ -35,6 +35,7 @@ object Pinger {
 }
 
 trait Pinger {
+  val timeout = 60 * 1000
   def ping(address: URI): Unit
 }
 
@@ -103,7 +104,7 @@ trait ReachableEcho extends Pinger with Answer {
   override def ping(address: URI): Unit = {
     val start = Calendar.getInstance.getTime
     val addr = if (address.getHost == null) address.getPath else address.getHost
-    val f = Future(InetAddress.getByName(addr).isReachable(Pinger.timeout))
+    val f = Future(InetAddress.getByName(addr).isReachable(timeout))
     f.onSuccess({
       case b => if (b) sendSuccess(PingInfo(start, Calendar.getInstance.getTimeInMillis - start.getTime))
       else sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
@@ -121,8 +122,8 @@ trait ReachableFuture extends Pinger with Answer {
   override def ping(address: URI): Unit = {
     val start = Calendar.getInstance.getTime
     val addr = if (address.getHost == null) address.getPath else address.getHost
-    val addresses = InetAddress.getAllByName(addr).map(a => Future(a.isReachable(Pinger.timeout)))
-    val response = Future.find(addresses) { f => f == true } /*(p=>{p==true})*/
+    val addresses = InetAddress.getAllByName(addr).map(a => Future(a.isReachable(timeout)))
+    val response = Future.find(addresses){f => f} // { f => f == true }
     response.onSuccess({
       case Some(b) if (b) => sendSuccess(PingInfo(start, Calendar.getInstance.getTimeInMillis - start.getTime))
       case _ => sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))

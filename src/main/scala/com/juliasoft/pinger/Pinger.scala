@@ -12,9 +12,6 @@ import scala.concurrent.Future
 import scala.util.{Success, Try}
 
 object Pinger {
-
-  // val timeout = 60 * 1000
-
   case class Ping(address: URI)
 
   class PingAck(start: Date)

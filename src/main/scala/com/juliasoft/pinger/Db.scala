@@ -2,6 +2,7 @@ package com.juliasoft.pinger
 
 import java.sql._
 
+import akka.actor.Actor
 import com.juliasoft.pinger.Model.{Task, TaskResult}
 import com.typesafe.scalalogging.StrictLogging
 
@@ -88,21 +89,21 @@ object Db {
   def apply(driver: String, url: String, user: String, pass: String) = new Db(driver, url, user, pass)
 }
 
-class Db(driver: String, url: String, user: String, pass: String) extends AutoCloseable with StrictLogging {
+class Db(driver: String, url: String, user: String, pass: String) extends Storage with AutoCloseable with StrictLogging {
   Class.forName(driver)
 
   private[this] def connection = DriverManager.getConnection(url, user, pass)
 
   /** PingData (TaskResult) */
 
-  def createTaskResult(tr: TaskResult) = {
+  def createResult(tr: TaskResult): TaskResult = {
     val sql = "insert into pingdata(id, start, rtt, status, message)values(?, ?, ?, ?, ?)"
-    val r = Db.updateQuery(connection, sql, tr.id, tr.start, tr.rtt, tr.status, tr.message)
-    if (r != 1)
+    if (Db.updateQuery(connection, sql, tr.id, tr.start, tr.rtt, tr.status, tr.message) != 1)
       throw new SQLException(s"Unable to insert task result $tr")
+    tr
   }
 
-  def listTaskResults(taskId: Long): List[TaskResult] = {
+  def listResults(taskId: Long): List[TaskResult] = {
     val sql = "select id, start, rtt, status, message from pingdata where id=?"
     var result: List[TaskResult] = Nil
     Db.query(connection, sql, taskId) { rs =>
@@ -156,6 +157,7 @@ class Db(driver: String, url: String, user: String, pass: String) extends AutoCl
   }
 
   def deleteTask(taskId: Long): Int = {
+    Db.updateQuery(connection, "delete from pingdata where id=?", taskId)
     val r = Db.updateQuery(connection, "delete from tasks where id=?", taskId)
     if (r != 1)
       throw new SQLException(s"Unable to delete task id=$taskId")
@@ -174,10 +176,10 @@ class Db(driver: String, url: String, user: String, pass: String) extends AutoCl
   private[this] def rsToTaskResult(rs: ResultSet): TaskResult = {
     val id = rs.getLong(1)
     val start = rs.getTimestamp(2)
-//    val rtt = Some(rs.getInt(3))
+    //    val rtt = Some(rs.getInt(3))
     val rtt = Db.getOption(3, rs)
     val status = rs.getInt(4)
-//    val message = Some(rs.getString(5))
+    //    val message = Some(rs.getString(5))
     val message = Db.getOption(5, rs)
     TaskResult(id, start, rtt, status, message)
   }

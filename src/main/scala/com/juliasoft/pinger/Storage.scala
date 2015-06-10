@@ -1,6 +1,6 @@
 package com.juliasoft.pinger
 
-import akka.actor.Actor
+import akka.actor.{Props, Actor}
 import com.juliasoft.pinger.Model.{Task, TaskResult}
 
 object StorageActor {

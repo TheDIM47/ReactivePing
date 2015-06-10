@@ -22,7 +22,7 @@ libraryDependencies ++= Seq(
   ,"com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.+"
   ,"com.typesafe.akka" %% "akka-testkit" % "2.3.+" % "test"
 
-  ,"com.h2database" % "h2" % "1.4.187" % "test"
+  ,"com.h2database" % "h2" % "1.4.187"
 
   ,"junit" % "junit" % "4.12" % "test"
   ,"org.scalacheck" %% "scalacheck" % "1.12.+" % "test"

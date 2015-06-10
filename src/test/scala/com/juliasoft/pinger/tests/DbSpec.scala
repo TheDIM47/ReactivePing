@@ -24,7 +24,7 @@ class DbSpec extends FunSuite with StrictLogging {
     val db = Db(driver, url, user, pass)
     assert(db.listTasks == Nil)
     // create
-    val task = db.createTask(Task(0, "test-case2", "test-case2", 90, true))
+    val task = db.createTask(Task(0, "N", "test-case2", "test-case2", 90, true))
     assert(task.id > 0)
     // read 1
     assert(db.listTasks != Nil)
@@ -43,7 +43,7 @@ class DbSpec extends FunSuite with StrictLogging {
   test("case3: Should successfully create/list ping data") {
     val db = Db(driver, url, user, pass)
     // create task
-    val task = db.createTask(Task(0, "test-case3", "test-case3", 90, true))
+    val task = db.createTask(Task(0, "N", "test-case3", "test-case3", 90, true))
     assert(task.id > 0)
     // create task results
     val now = Calendar.getInstance()
@@ -62,10 +62,10 @@ class DbSpec extends FunSuite with StrictLogging {
 
   test("case4: Should fail on duplicates") {
     val db = Db(driver, url, user, pass)
-    val task = db.createTask(Task(0, "dup", "dup", 90, true))
+    val task = db.createTask(Task(0, "N", "dup", "dup", 90, true))
     assert(task.id > 0)
     intercept[java.sql.SQLException] {
-      db.createTask(Task(0, "dup", "dup", 90, true))
+      db.createTask(Task(0, "N", "dup", "dup", 90, true))
       assert(false)
     }
     val result = TaskResult(task.id, new Timestamp(Calendar.getInstance().getTimeInMillis), Some(1), 1, None)
@@ -89,9 +89,9 @@ class DbSpec extends FunSuite with StrictLogging {
     val db = Db(driver, url, user, pass)
 
     // insert tasks
-    val task1 = db.createTask(Task(0, "test-case6-1", "test-case6-1", 90, true))
+    val task1 = db.createTask(Task(0, "N", "test-case6-1", "test-case6-1", 90, true))
     assert(task1.id > 0)
-    val task2 = db.createTask(Task(0, "test-case6-2", "test-case6-2", 90, true))
+    val task2 = db.createTask(Task(0, "N", "test-case6-2", "test-case6-2", 90, true))
     assert(task2.id > 0)
 
     // insert results

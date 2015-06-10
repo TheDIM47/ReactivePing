@@ -117,7 +117,7 @@ class Db(driver: String, url: String, user: String, pass: String) extends Storag
   /** Task */
 
   def listTasks: List[Task] = {
-    val sql = "select id, name, url, period, active from tasks"
+    val sql = "select id, method, name, url, period, active from tasks"
     var result: List[Task] = Nil
     Db.query(connection, sql) { rs =>
       while (rs.next()) {
@@ -128,7 +128,7 @@ class Db(driver: String, url: String, user: String, pass: String) extends Storag
   }
 
   def getTask(taskId: Long): Option[Task] = {
-    val sql = "select id, name, url, period, active from tasks where id=?"
+    val sql = "select id, method, name, url, period, active from tasks where id=?"
     Db.query(connection, sql, taskId) { rs =>
       if (rs.next()) {
         Some(rsToTask(rs))
@@ -139,8 +139,8 @@ class Db(driver: String, url: String, user: String, pass: String) extends Storag
   }
 
   def createTask(task: Task): Task = {
-    val sql = "insert into tasks(name, url, period, active)values(?, ?, ?, ?)"
-    Db.createQuery(connection, sql, task.name, task.url, task.period, task.active) { rs =>
+    val sql = "insert into tasks(method, name, url, period, active)values(?, ?, ?, ?, ?)"
+    Db.createQuery(connection, sql, task.method, task.name, task.url, task.period, task.active) { rs =>
       if (rs.next())
         task.copy(id = rs.getInt(1))
       else
@@ -149,8 +149,8 @@ class Db(driver: String, url: String, user: String, pass: String) extends Storag
   }
 
   def updateTask(task: Task): Task = {
-    val sql = "update tasks set name=?, url=?, period=?, active=? where id=?"
-    if (Db.updateQuery(connection, sql, task.name, task.url, task.period, task.active, task.id) == 1)
+    val sql = "update tasks set method=?, name=?, url=?, period=?, active=? where id=?"
+    if (Db.updateQuery(connection, sql, task.method, task.name, task.url, task.period, task.active, task.id) == 1)
       task
     else
       throw new SQLException(s"Unable to update $task")
@@ -166,11 +166,12 @@ class Db(driver: String, url: String, user: String, pass: String) extends Storag
 
   private[this] def rsToTask(rs: ResultSet): Task = {
     val id = rs.getLong(1)
-    val name = rs.getString(2)
-    val url = rs.getString(3)
-    val period = rs.getInt(4)
-    val active = rs.getBoolean(5)
-    Task(id, name, url, period, active)
+    val method = rs.getString(2)
+    val name = rs.getString(3)
+    val url = rs.getString(4)
+    val period = rs.getInt(5)
+    val active = rs.getBoolean(6)
+    Task(id, method, name, url, period, active)
   }
 
   private[this] def rsToTaskResult(rs: ResultSet): TaskResult = {
@@ -178,7 +179,7 @@ class Db(driver: String, url: String, user: String, pass: String) extends Storag
     val start = rs.getTimestamp(2)
     //    val rtt = Some(rs.getInt(3))
     val rtt = Db.getOption(3, rs)
-    val status = rs.getInt(4)
+    val status = rs.getByte(4)
     //    val message = Some(rs.getString(5))
     val message = Db.getOption(5, rs)
     TaskResult(id, start, rtt, status, message)

@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS Tasks (
   id     IDENTITY     NOT NULL,
+  method CHAR(1)      NOT NULL CHECK(method IN ('N','H','F','E')),
   name   VARCHAR(100) UNIQUE NOT NULL,
   url    VARCHAR(250) UNIQUE NOT NULL,
   period INT          NOT NULL DEFAULT 60,

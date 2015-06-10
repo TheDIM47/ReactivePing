@@ -65,7 +65,7 @@ class ActorAnswerSpec extends FunSuite with StrictLogging {
     })
     manager.watch(pinger)
     manager.send(pinger, Ping(new URI("http://www.google.com")))
-    manager.expectNoMsg(800.millis)
+    manager.expectNoMsg(700.millis)
     manager.expectMsgPF(400.millis) {
       case ErrorInfo(start, msg) => assert(msg == "Unreachable host http://www.google.com")
     }

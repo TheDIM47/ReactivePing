@@ -8,12 +8,14 @@ object Model {
   /**
    * Task to execute
    * @param id task id
+   * @param method method type: 'N' - Native, 'H' - Http, 'F' - Future, 'E' - Echo
    * @param name task name
    * @param url url to check
    * @param period period in seconds
    * @param active true if tsk active
    */
   case class Task(id: Long,
+                  method: String,
                   name: String,
                   url: String,
                   period: Int,
@@ -30,7 +32,7 @@ object Model {
   case class TaskResult(id: Long,
                         start: Timestamp,
                         rtt: Option[Int],
-                        status: Int,
+                        status: Byte,
                         message: Option[String])
 
 }

@@ -16,7 +16,7 @@ object Pinger {
 
   class PingAck(start: Date)
 
-  case class PingInfo(start: Date, rtt: Long) extends PingAck(start)
+  case class PingInfo(start: Date, rtt: Int) extends PingAck(start)
 
   case class ErrorInfo(start: Date, msg: String) extends PingAck(start)
 
@@ -72,7 +72,7 @@ trait HttpPing extends Pinger with Answer {
   override def ping(address: URI): Unit = {
     val f = Http.configure(_ setFollowRedirect true)(url(address.toURL.toString) OK as.String)
     f.onSuccess({
-      case _ => sendSuccess(PingInfo(start, Calendar.getInstance.getTimeInMillis - start.getTime))
+      case _ => sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
     })
     f.onFailure({
       case t: Throwable => sendFailure(ErrorInfo(start, t.getMessage))
@@ -114,7 +114,7 @@ trait ReachableEcho extends Pinger with Answer {
   override def ping(address: URI): Unit = {
     val f = Future { InetAddress.getByName(host(address)).isReachable(timeout) }
     f.onSuccess({
-      case b => if (b) sendSuccess(PingInfo(start, Calendar.getInstance.getTimeInMillis - start.getTime))
+      case b => if (b) sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
       else sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
     })
     f.onFailure({
@@ -135,7 +135,7 @@ trait ReachableFuture extends Pinger with Answer {
   override def ping(address: URI): Unit = {
     val f = Future.find { InetAddress.getAllByName(host(address)).map(a => Future(a.isReachable(timeout))) } { f => f } // { f => f == true }
     f.onSuccess({
-      case Some(b) if (b) => sendSuccess(PingInfo(start, Calendar.getInstance.getTimeInMillis - start.getTime))
+      case Some(b) if (b) => sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
       case _ => sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
     })
     f.onFailure({

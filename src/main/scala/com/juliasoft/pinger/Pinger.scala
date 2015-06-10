@@ -32,7 +32,6 @@ object Pinger {
 }
 
 trait Pinger {
-  val start = Calendar.getInstance.getTime
   val timeout = 60 * 1000
 
   def ping(address: URI): Unit
@@ -70,6 +69,7 @@ trait HttpPing extends Pinger with Answer {
   import dispatch._
 
   override def ping(address: URI): Unit = {
+    val start = Calendar.getInstance.getTime
     val f = Http.configure(_ setFollowRedirect true)(url(address.toURL.toString) OK as.String)
     f.onSuccess({
       case _ => sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
@@ -88,6 +88,7 @@ trait NativePing extends Pinger with Answer {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   override def ping(address: URI): Unit = {
+    val start = Calendar.getInstance.getTime
     val f: Future[IcmpPingResponse] = Future {
       val request: IcmpPingRequest = IcmpPingUtil.createIcmpPingRequest
       request.setHost(host(address))
@@ -112,6 +113,7 @@ trait ReachableEcho extends Pinger with Answer {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   override def ping(address: URI): Unit = {
+    val start = Calendar.getInstance.getTime
     val f = Future { InetAddress.getByName(host(address)).isReachable(timeout) }
     f.onSuccess({
       case b => if (b) sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
@@ -133,6 +135,7 @@ trait ReachableFuture extends Pinger with Answer {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   override def ping(address: URI): Unit = {
+    val start = Calendar.getInstance.getTime
     val f = Future.find { InetAddress.getAllByName(host(address)).map(a => Future(a.isReachable(timeout))) } { f => f } // { f => f == true }
     f.onSuccess({
       case Some(b) if (b) => sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))

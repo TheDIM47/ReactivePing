@@ -35,11 +35,13 @@ object Manager {
 }
 
 case class Manager(storage: ActorRef) extends Actor with ActorLogging {
-
+  import scala.concurrent.ExecutionContext.Implicits.global
+  import scala.concurrent.duration._
   import Manager._
 
   // Task.ID -> ActorRef map
   var taskMap = Map.empty[ActorRef, Task]
+  var schedulers = Map.empty[ActorRef, Cancellable]
 
   // Ask storage for tasks
   storage ! ListTasks
@@ -48,10 +50,16 @@ case class Manager(storage: ActorRef) extends Actor with ActorLogging {
     case TaskListAck(tasks) => tasks.filter(_.active).foreach(t => self ! StartTask(t))
 
     case info: PingInfo =>
-      taskMap.get(sender).foreach(task => self ! TaskResult(task.id, new Timestamp(info.start.getTime), Some(info.rtt), 1, None))
+      taskMap.get(sender).foreach(task => {
+        self ! TaskResult(task.id, new Timestamp(info.start.getTime), Some(info.rtt), 1, None)
+//        self ! StopTask(task)
+      })
 
     case err: ErrorInfo =>
-      taskMap.get(sender).foreach(task => self ! TaskResult(task.id, new Timestamp(err.start.getTime), None, 0, Some(err.msg)))
+      taskMap.get(sender).foreach(task => {
+        self ! TaskResult(task.id, new Timestamp(err.start.getTime), None, 0, Some(err.msg))
+//        self ! StopTask(task)
+      })
 
     /** Task(Ping) result */
     case tr: TaskResult => storage ! CreateResult(tr)
@@ -82,23 +90,30 @@ case class Manager(storage: ActorRef) extends Actor with ActorLogging {
     case StopTask(t) => stopTask(t)
   }
 
-  def startTask(tack: Task): Unit = {
-    val actor = tack.method match {
+  def startTask(task: Task): Unit = {
+    val actor = task.method match {
       case "N" => context.system.actorOf(Props(classOf[NativePinger], self))
       case "H" => context.system.actorOf(Props(classOf[HttpPinger], self))
       case "E" => context.system.actorOf(Props(classOf[EchoPinger], self))
       case "F" => context.system.actorOf(Props(classOf[FuturePinger], self))
     }
-    taskMap += actor -> tack
-    actor ! Ping(new URI(tack.url))
+    taskMap += actor -> task
+    schedulers += actor -> context.system.scheduler.schedule( 0.seconds, task.period.seconds, actor, Ping(new URI(task.url)) )
+//    actor ! Ping(new URI(task.url))
   }
 
-  def stopTask(t: Task): Unit = stopTask(t.id)
+  def stopTask(task: Task): Unit = stopTask(task.id)
 
   def stopTask(taskId: Long): Unit = {
     val actors = taskMap.filter(_._2.id == taskId)
     taskMap = taskMap.filterNot(a => actors.contains(a._1))
-    actors.foreach(_._1 ! PoisonPill)
+    actors.foreach(a => {
+      val actor = a._1
+      schedulers.get(actor).foreach(_.cancel())
+      schedulers -= actor
+      actor ! PoisonPill
+    })
   }
 
 }
+

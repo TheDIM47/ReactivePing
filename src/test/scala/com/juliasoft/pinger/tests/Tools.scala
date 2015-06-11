@@ -28,4 +28,9 @@ object Tools extends FunSpec with StrictLogging {
     }
   }
 
+  @volatile private var _seq = 0L
+  def nextSeq = {
+    _seq += 1
+    _seq
+  }
 }

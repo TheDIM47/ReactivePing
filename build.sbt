@@ -8,6 +8,10 @@ compileOrder := CompileOrder.JavaThenScala
 
 scalacOptions in ThisBuild := Seq("-feature", "-unchecked", "-deprecation", "-encoding", "utf8", "-Xlint")
 
+(fork in Test) := true
+
+testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oS")
+
 libraryDependencies ++= Seq(
    "net.databinder.dispatch" %% "dispatch-core" % "0.11.+"
   ,"org.scala-lang.modules" %% "scala-async" % "0.9.+"
@@ -24,8 +28,5 @@ libraryDependencies ++= Seq(
 
   ,"com.h2database" % "h2" % "1.4.187"
 
-  ,"junit" % "junit" % "4.12" % "test"
-  ,"org.scalacheck" %% "scalacheck" % "1.12.+" % "test"
   ,"org.scalatest" %% "scalatest" % "2.2.+" % "test"
-  ,"org.scalamock" %% "scalamock-scalatest-support" % "3.2.+" % "test"
 )

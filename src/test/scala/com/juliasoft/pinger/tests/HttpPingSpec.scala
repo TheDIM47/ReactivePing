@@ -32,8 +32,8 @@ class HttpPingSpec extends FunSuite with StrictLogging {
   }
 
   test("case 4: HttpPing should successfully resolve google")  {
-    val p = new TestAnswer(0, 1000, "") with HttpPing
+    val p = new TestAnswer(0, 1200, "") with HttpPing
     p.ping(new URI("http://google.com"))
-    Await.result(p.answered.future, 1.second)
+    Await.result(p.answered.future, 2.second)
   }
 }

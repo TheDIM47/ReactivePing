@@ -5,9 +5,11 @@ import java.util.{Calendar, Date}
 
 import akka.actor.{Actor, ActorRef}
 import com.juliasoft.pinger.Pinger.{ErrorInfo, PingInfo}
+import com.typesafe.scalalogging.StrictLogging
 import org.icmp4j.{IcmpPingRequest, IcmpPingResponse, IcmpPingUtil}
 
 import scala.annotation.tailrec
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Success, Try}
 
@@ -63,14 +65,14 @@ trait ActorAnswer extends Answer with Actor {
  * "Ping" using Http GET request with redirect (Status 302)
  * Success if answer 200 OK
  */
-trait HttpPing extends Pinger with Answer {
+trait HttpPing extends Pinger with Answer with StrictLogging {
 
-  import dispatch.Defaults._
+//  import dispatch.Defaults._
   import dispatch._
 
   override def ping(address: URI): Unit = {
     val start = Calendar.getInstance.getTime
-    val f = Http.configure(_ setFollowRedirect true)(url(address.toURL.toString) OK as.String)
+    val f = Http.configure(builder => builder.setFollowRedirect(true).setRequestTimeout(timeout))(url(address.toURL.toString) OK as.String)
     f.onSuccess({
       case _ => sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
     })
@@ -83,9 +85,7 @@ trait HttpPing extends Pinger with Answer {
 /**
  * Call platform native PING utility and parse output
  */
-trait NativePing extends Pinger with Answer {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
+trait NativePing extends Pinger with Answer with StrictLogging {
 
   override def ping(address: URI): Unit = {
     val start = Calendar.getInstance.getTime
@@ -108,12 +108,11 @@ trait NativePing extends Pinger with Answer {
  * "Ping" using ICMP Echo request to single address
  * @See https://docs.oracle.com/javase/7/docs/api/java/net/InetAddress.html#isReachable(int)
  */
-trait ReachableEcho extends Pinger with Answer {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
+trait ReachableEcho extends Pinger with Answer with StrictLogging {
 
   override def ping(address: URI): Unit = {
     val start = Calendar.getInstance.getTime
+    // logger.info(s"Timeout: $timeout Address: $address Host: ${host(address)}")
     val f = Future { InetAddress.getByName(host(address)).isReachable(timeout) }
     f.onSuccess({
       case b => if (b) sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
@@ -130,9 +129,7 @@ trait ReachableEcho extends Pinger with Answer {
  * Success if any of addresses returns Success
  * @See https://docs.oracle.com/javase/7/docs/api/java/net/InetAddress.html#isReachable(int)
  */
-trait ReachableFuture extends Pinger with Answer {
-
-  import scala.concurrent.ExecutionContext.Implicits.global
+trait ReachableFuture extends Pinger with Answer with StrictLogging {
 
   override def ping(address: URI): Unit = {
     val start = Calendar.getInstance.getTime

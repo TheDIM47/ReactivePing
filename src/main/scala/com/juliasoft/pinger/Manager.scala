@@ -3,10 +3,11 @@ package com.juliasoft.pinger
 import java.net.URI
 import java.sql.Timestamp
 
+import akka.actor.Actor.Receive
 import akka.actor._
 import akka.event.LoggingReceive
 import com.juliasoft.pinger.Model.{Task, TaskResult}
-import com.juliasoft.pinger.Pinger.{ErrorInfo, Ping, PingInfo}
+import com.juliasoft.pinger.Pinger._
 import com.juliasoft.pinger.StorageActor._
 
 /**
@@ -18,20 +19,16 @@ object Manager {
 
   case class StopTask(t: Task)
 
-  abstract case class Receiver(manager: ActorRef) extends ActorAnswer with Pinger with ActorLogging {
-    override def receive: Receive = LoggingReceive {
-      case Ping(uri) => ping(uri)
+  abstract case class Receiver(manager: ActorRef) extends Actor with Pinger with ActorLogging {
+    def receive: Receive = LoggingReceive {
+      case Ping(uri) => pingService.ping(uri)
     }
   }
 
-  class NativePinger(m: ActorRef) extends Receiver(m) with NativePing
-
-  class HttpPinger(m: ActorRef) extends Receiver(m) with HttpPing
-
-  class EchoPinger(m: ActorRef) extends Receiver(m) with ReachableEcho
-
-  class FuturePinger(m: ActorRef) extends Receiver(m) with ReachableFuture
-
+  class NativePinger(m: ActorRef) extends Receiver(m) with NativePing with ActorAnswer
+  class HttpPinger(m: ActorRef)   extends Receiver(m) with HttpPing with ActorAnswer
+  class EchoPinger(m: ActorRef)   extends Receiver(m) with ReachableEcho with ActorAnswer
+  class FuturePinger(m: ActorRef) extends Receiver(m) with ReachableFuture with ActorAnswer
 }
 
 case class Manager(storage: ActorRef) extends Actor with ActorLogging {

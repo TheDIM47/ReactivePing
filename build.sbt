@@ -1,3 +1,5 @@
+enablePlugins(ScalaJSPlugin)
+
 name := "ReactivePing"
 
 version := "1.0"
@@ -8,25 +10,49 @@ compileOrder := CompileOrder.JavaThenScala
 
 scalacOptions in ThisBuild := Seq("-feature", "-unchecked", "-deprecation", "-encoding", "utf8", "-Xlint")
 
-(fork in Test) := true
+// (fork in Test) := true
 
 testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oS")
 
-libraryDependencies ++= Seq(
-   "net.databinder.dispatch" %% "dispatch-core" % "0.11.+"
-  ,"org.scala-lang.modules" %% "scala-async" % "0.9.+"
+resolvers += "spray repo" at "http://repo.spray.io"
 
-  ,"com.typesafe.scala-logging" %% "scala-logging" % "3.1.+"
-  ,"org.slf4j" % "slf4j-api" % "1.7.+"
-  ,"org.slf4j" % "slf4j-simple" % "1.7.+"
+testFrameworks += new TestFramework("utest.runner.Framework")
 
-  ,"net.java.dev.jna" % "jna-platform" % "4.1.0"
+scalaJSStage in Global := FastOptStage
 
-  ,"com.typesafe.akka" %% "akka-actor" % "2.3.+"
-  ,"com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.+"
-  ,"com.typesafe.akka" %% "akka-testkit" % "2.3.+" % "test"
+libraryDependencies ++= {
+  val akkaVersion = "2.3.11"
+  val sprayVersion = "1.3.1"
+  val slf4jVersion = "1.7.12"
+  Seq(
+    "net.databinder.dispatch" %% "dispatch-core" % "0.11.+"
+    ,"org.scala-lang.modules" %% "scala-async" % "0.9.+"
 
-  ,"com.h2database" % "h2" % "1.4.187"
+    ,"io.spray" %% "spray-can" % sprayVersion
+    ,"io.spray" %% "spray-routing" % sprayVersion
 
-  ,"org.scalatest" %% "scalatest" % "2.2.+" % "test"
-)
+    ,"com.lihaoyi" %%% "scalatags" % "0.5.2"
+    ,"com.lihaoyi" %%% "utest" % "0.3.1"
+    ,"org.scala-js" %%% "scalajs-dom" % "0.8.1"
+
+    ,"com.typesafe.scala-logging" %% "scala-logging" % "3.1.+"
+    ,"org.slf4j" % "slf4j-api" % slf4jVersion
+    ,"org.slf4j" % "slf4j-simple" % slf4jVersion
+
+    ,"net.java.dev.jna" % "jna-platform" % "4.1.0"
+
+    ,"com.typesafe.akka" %% "akka-actor" % akkaVersion
+    ,"com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion
+    ,"com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test"
+
+    ,"com.h2database" % "h2" % "1.4.187"
+
+    ,"org.scalatest" %% "scalatest" % "2.2.+" % "test"
+  )
+}
+
+// workbenchSettings
+
+Revolver.settings
+
+// updateBrowsers <<= updateBrowsers.triggeredBy(fastOptJS in Compile)

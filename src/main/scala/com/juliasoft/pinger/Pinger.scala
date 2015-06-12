@@ -3,9 +3,8 @@ package com.juliasoft.pinger
 import java.net.{InetAddress, URI}
 import java.util.{Calendar, Date}
 
-import akka.actor.{Actor, ActorRef}
-import com.juliasoft.pinger.Pinger.{ErrorInfo, PingInfo}
-import com.typesafe.scalalogging.StrictLogging
+import akka.actor.ActorRef
+import com.juliasoft.pinger.Pinger._
 import org.icmp4j.{IcmpPingRequest, IcmpPingResponse, IcmpPingUtil}
 
 import scala.annotation.tailrec
@@ -14,6 +13,7 @@ import scala.concurrent.Future
 import scala.util.{Success, Try}
 
 object Pinger {
+
   case class Ping(address: URI)
 
   class PingAck(start: Date)
@@ -36,92 +36,127 @@ object Pinger {
 trait Pinger {
   val timeout = 60 * 1000
 
-  def ping(address: URI): Unit
+  def pingService: PingService
 
-  def host(address: URI) = if (address.getHost == null) address.getPath else address.getHost
+  def answerService: AnswerService
+
+  trait PingService {
+    def host(address: URI) = if (address.getHost == null) address.getPath else address.getHost
+
+    def ping(address: URI): Unit
+  }
+
+  trait AnswerService {
+    def sendSuccess(info: PingInfo): Unit
+
+    def sendFailure(error: ErrorInfo): Unit
+  }
+
 }
 
-trait Answer {
-  def sendSuccess(info: PingInfo): Unit
+trait PrintAnswer extends Pinger {
+  // this: PingService =>
+  def answerService: AnswerService = new PrintAnswerService
 
-  def sendFailure(error: ErrorInfo): Unit
+  class PrintAnswerService extends AnswerService {
+    def sendSuccess(info: PingInfo): Unit = println(info)
+
+    def sendFailure(error: ErrorInfo): Unit = println(error)
+  }
+
 }
 
-trait PrintAnswer extends Answer {
-  override def sendSuccess(info: PingInfo): Unit = println(info)
-
-  override def sendFailure(error: ErrorInfo): Unit = println(error)
-}
-
-trait ActorAnswer extends Answer with Actor {
+trait ActorAnswer extends Pinger {
+  // this: PingService =>
   def manager: ActorRef
 
-  override def sendSuccess(info: PingInfo): Unit = manager ! info
+  def answerService: AnswerService = new ActorAnswerService(manager)
 
-  override def sendFailure(error: ErrorInfo): Unit = manager ! error
+  class ActorAnswerService(val manager: ActorRef) extends AnswerService {
+    def sendSuccess(info: PingInfo): Unit = manager ! info
+
+    def sendFailure(error: ErrorInfo): Unit = manager ! error
+  }
+
 }
 
 /**
  * "Ping" using Http GET request with redirect (Status 302)
  * Success if answer 200 OK
  */
-trait HttpPing extends Pinger with Answer with StrictLogging {
+trait HttpPing extends Pinger {
+//  this: AnswerService =>
+  def pingService: PingService = new HttpPingService
 
-//  import dispatch.Defaults._
-  import dispatch._
+  class HttpPingService extends PingService {
 
-  override def ping(address: URI): Unit = {
-    val start = Calendar.getInstance.getTime
-    val f = Http.configure(builder => builder.setFollowRedirect(true).setRequestTimeout(timeout))(url(address.toURL.toString) OK as.String)
-    f.onSuccess({
-      case _ => sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
-    })
-    f.onFailure({
-      case t: Throwable => sendFailure(ErrorInfo(start, t.getMessage))
-    })
+    import dispatch._
+
+    def ping(address: URI): Unit = {
+      val start = Calendar.getInstance.getTime
+      val f = Http.configure(builder => builder.setFollowRedirect(true).setRequestTimeout(timeout))(url(address.toURL.toString) OK as.String)
+      f.onSuccess({
+        case _ => answerService.sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
+      })
+      f.onFailure({
+        case t: Throwable => answerService.sendFailure(ErrorInfo(start, t.getMessage))
+      })
+    }
   }
+
 }
 
 /**
- * Call platform native PING utility and parse output
+ * Call platform's native PING utility and parse output
  */
-trait NativePing extends Pinger with Answer with StrictLogging {
+trait NativePing extends Pinger {
+//  this: AnswerService =>
+  def pingService: PingService = new NativePingService
 
-  override def ping(address: URI): Unit = {
-    val start = Calendar.getInstance.getTime
-    val f: Future[IcmpPingResponse] = Future {
-      val request: IcmpPingRequest = IcmpPingUtil.createIcmpPingRequest
-      request.setHost(host(address))
-      IcmpPingUtil.executePingRequest(request)
+  class NativePingService extends PingService {
+    def ping(address: URI): Unit = {
+      val start = Calendar.getInstance.getTime
+      val f: Future[IcmpPingResponse] = Future {
+        val request: IcmpPingRequest = IcmpPingUtil.createIcmpPingRequest
+        request.setHost(host(address))
+        IcmpPingUtil.executePingRequest(request)
+      }
+      f.onSuccess({
+        case r: IcmpPingResponse => if (r.getSuccessFlag) answerService.sendSuccess(PingInfo(start, r.getRtt))
+        else answerService.sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
+      })
+      f.onFailure({
+        case t: Throwable => answerService.sendFailure(ErrorInfo(start, t.getMessage))
+      })
     }
-    f.onSuccess({
-      case r: IcmpPingResponse => if (r.getSuccessFlag) sendSuccess(PingInfo(start, r.getRtt))
-      else sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
-    })
-    f.onFailure({
-      case t: Throwable => sendFailure(ErrorInfo(start, t.getMessage))
-    })
   }
+
 }
 
 /**
  * "Ping" using ICMP Echo request to single address
  * @See https://docs.oracle.com/javase/7/docs/api/java/net/InetAddress.html#isReachable(int)
  */
-trait ReachableEcho extends Pinger with Answer with StrictLogging {
+trait ReachableEcho extends Pinger {
+//  this: AnswerService =>
+  def pingService: PingService = new ReachableEchoService
 
-  override def ping(address: URI): Unit = {
-    val start = Calendar.getInstance.getTime
-    // logger.info(s"Timeout: $timeout Address: $address Host: ${host(address)}")
-    val f = Future { InetAddress.getByName(host(address)).isReachable(timeout) }
-    f.onSuccess({
-      case b => if (b) sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
-      else sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
-    })
-    f.onFailure({
-      case t: Throwable => sendFailure(ErrorInfo(start, t.getMessage))
-    })
+  class ReachableEchoService extends PingService {
+    def ping(address: URI): Unit = {
+      val start = Calendar.getInstance.getTime
+      val f = Future {
+        InetAddress.getByName(host(address)).isReachable(timeout)
+      }
+      f.onSuccess({
+        case b => if (b) answerService.sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
+        else answerService.sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
+      })
+      f.onFailure({
+        case t: Throwable => answerService.sendFailure(ErrorInfo(start, t.getMessage))
+      })
+    }
   }
+
 }
 
 /**
@@ -129,18 +164,25 @@ trait ReachableEcho extends Pinger with Answer with StrictLogging {
  * Success if any of addresses returns Success
  * @See https://docs.oracle.com/javase/7/docs/api/java/net/InetAddress.html#isReachable(int)
  */
-trait ReachableFuture extends Pinger with Answer with StrictLogging {
+trait ReachableFuture extends Pinger {
+//  this: AnswerService =>
+  def pingService: PingService = new ReachableFutureService
 
-  override def ping(address: URI): Unit = {
-    val start = Calendar.getInstance.getTime
-    val f = Future.find { InetAddress.getAllByName(host(address)).map(a => Future(a.isReachable(timeout))) } { f => f } // { f => f == true }
-    f.onSuccess({
-      case Some(b) if (b) => sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
-      case _ => sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
-    })
-    f.onFailure({
-      case t: Throwable => sendFailure(ErrorInfo(start, t.getMessage))
-    })
+  class ReachableFutureService extends PingService {
+    def ping(address: URI): Unit = {
+      val start = Calendar.getInstance.getTime
+      val f = Future.find {
+        InetAddress.getAllByName(host(address)).map(a => Future(a.isReachable(timeout)))
+      } { f => f } // { f => f == true }
+      f.onSuccess({
+        case Some(b) if (b) => answerService.sendSuccess(PingInfo(start, (Calendar.getInstance.getTimeInMillis - start.getTime).toInt))
+        case _ => answerService.sendFailure(ErrorInfo(start, s"Unreachable host ${address}"))
+      })
+      f.onFailure({
+        case t: Throwable => answerService.sendFailure(ErrorInfo(start, t.getMessage))
+      })
+    }
   }
+
 }
 

@@ -1,58 +1,33 @@
-enablePlugins(ScalaJSPlugin)
-
 name := "ReactivePing"
 
 version := "1.0"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.8"
 
 compileOrder := CompileOrder.JavaThenScala
 
 scalacOptions in ThisBuild := Seq("-feature", "-unchecked", "-deprecation", "-encoding", "utf8", "-Xlint")
 
-// (fork in Test) := true
-
-testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oS")
-
-resolvers += "spray repo" at "http://repo.spray.io"
-
-testFrameworks += new TestFramework("utest.runner.Framework")
-
-scalaJSStage in Global := FastOptStage
+(fork in Test) := true
 
 libraryDependencies ++= {
-  val akkaVersion = "2.3.11"
-  val sprayVersion = "1.3.1"
-  val slf4jVersion = "1.7.12"
+  val akkaVersion = "2.4.9"
+  val dispatchVersion = "0.11.3"
+  val slf4jVersion = "1.7.21"
+  val h2Version = "1.4.192"
+  val jnaVersion = "4.2.2"
   Seq(
-    "net.databinder.dispatch" %% "dispatch-core" % "0.11.+"
-    ,"org.scala-lang.modules" %% "scala-async" % "0.9.+"
+     "com.typesafe.akka" %% "akka-actor" % akkaVersion
 
-    ,"io.spray" %% "spray-can" % sprayVersion
-    ,"io.spray" %% "spray-routing" % sprayVersion
+    ,"net.java.dev.jna" % "jna-platform" % jnaVersion
 
-    ,"com.lihaoyi" %%% "scalatags" % "0.5.2"
-    ,"com.lihaoyi" %%% "utest" % "0.3.1"
-    ,"org.scala-js" %%% "scalajs-dom" % "0.8.1"
+    ,"net.databinder.dispatch" %% "dispatch-core" % dispatchVersion
 
-    ,"com.typesafe.scala-logging" %% "scala-logging" % "3.1.+"
     ,"org.slf4j" % "slf4j-api" % slf4jVersion
-    ,"org.slf4j" % "slf4j-simple" % slf4jVersion
+    ,"com.h2database" % "h2" % h2Version
 
-    ,"net.java.dev.jna" % "jna-platform" % "4.1.0"
-
-    ,"com.typesafe.akka" %% "akka-actor" % akkaVersion
-    ,"com.typesafe.akka" %% "akka-persistence-experimental" % akkaVersion
-    ,"com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test"
-
-    ,"com.h2database" % "h2" % "1.4.187"
-
-    ,"org.scalatest" %% "scalatest" % "2.2.+" % "test"
+    ,"com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test
+    ,"org.scalatest" %% "scalatest" % "3.0.0" % Test
   )
 }
 
-// workbenchSettings
-
-Revolver.settings
-
-// updateBrowsers <<= updateBrowsers.triggeredBy(fastOptJS in Compile)

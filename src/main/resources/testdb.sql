@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS Tasks (
   id     IDENTITY     NOT NULL,
-  method CHAR(1)      NOT NULL CHECK(method IN ('N','H','F','E')),
+  method VARCHAR(15)  NOT NULL,
   name   VARCHAR(100) UNIQUE NOT NULL,
   url    VARCHAR(250) UNIQUE NOT NULL,
   period INT          NOT NULL DEFAULT 60,
@@ -15,5 +15,5 @@ CREATE TABLE IF NOT EXISTS PingData (
   status  INT  NOT NULL,
   message VARCHAR(250),
   PRIMARY KEY (id, start),
-  FOREIGN KEY (id) REFERENCES Tasks(id)
+  FOREIGN KEY (id) REFERENCES Tasks(id) ON DELETE CASCADE
 );

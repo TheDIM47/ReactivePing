@@ -10,7 +10,7 @@ import org.scalatest.FunSuite
 
 import scala.concurrent.duration._
 
-class DbSpec extends FunSuite /*with StrictLogging*/ {
+class DbSpec extends FunSuite {
   val driver = "org.h2.Driver"
   val url = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;INIT=RUNSCRIPT FROM 'classpath:testdb.sql'"
   val user = "sa"

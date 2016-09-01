@@ -12,7 +12,7 @@ class NativePingSpec extends FunSuite {
   import scala.concurrent.ExecutionContext.Implicits.global
 
   test("NativePing should NOT fail on resolve localhost") {
-    val p = new FakeObject with NativePinger
+    val p = new FakePinger with NativePinger
     p.ping(new URI("localhost"))
     Await.result(Future.firstCompletedOf(Seq(p.error.future, p.info.future)), defaultDelay)
     assert(p.info.isCompleted)
@@ -20,7 +20,7 @@ class NativePingSpec extends FunSuite {
   }
 
   test("NativePing should NOT fail on resolve localhost IP") {
-    val p = new FakeObject with NativePinger
+    val p = new FakePinger with NativePinger
     p.ping(new URI("127.0.0.1"))
     Await.result(Future.firstCompletedOf(Seq(p.error.future, p.info.future)), defaultDelay)
     assert(p.info.isCompleted)
@@ -28,7 +28,7 @@ class NativePingSpec extends FunSuite {
   }
 
   test("NativePing should fail on wrong IP") {
-    val p = new FakeObject with NativePinger
+    val p = new FakePinger with NativePinger
     p.ping(new URI("0.0.0.1"))
     Await.result(Future.firstCompletedOf(Seq(p.error.future, p.info.future)), defaultDelay)
     assert(p.error.isCompleted)
@@ -36,7 +36,7 @@ class NativePingSpec extends FunSuite {
   }
 
   test("NativePing should successfully resolve google") {
-    val p = new FakeObject with NativePinger
+    val p = new FakePinger with NativePinger
     p.ping(new URI("google.com"))
     Await.result(Future.firstCompletedOf(Seq(p.error.future, p.info.future)), defaultDelay)
     assert(p.info.isCompleted)

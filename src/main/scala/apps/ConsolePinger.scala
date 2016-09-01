@@ -2,6 +2,7 @@ package apps
 
 import java.net.URI
 
+import actors.StorageCommands.CreateTask
 import akka.actor._
 import actors.{ResultStorageActor, TaskManager, TaskStorageActor}
 import model.{PingNative, Task}
@@ -10,10 +11,8 @@ import com.typesafe.config.ConfigFactory
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-//case class DbApiActor(driver: String, url: String, user: String, pass: String) extends DbApi(driver, url, user, pass) with StorageActor
-
 /**
- * Console Pinger application
+ * Console Ping google.com each 5 seconds
  */
 object ConsolePinger extends App {
   private val config = ConfigFactory.load()
@@ -23,20 +22,22 @@ object ConsolePinger extends App {
   private val user = config.getString("com.juliasoft.pinger.user")
   private val password = config.getString("com.juliasoft.pinger.password")
 
-  val googleTask = Task(1, PingNative, "Google", new URI("www.google.com"), 10.seconds, true)
   val system = ActorSystem("ConsolePingerSystem")
-//  val taskStorage = system.actorOf(Props(classOf[TaskStorageActor], driver, url, user, password), "task-storage")
+  val taskStorage = system.actorOf(Props(classOf[TaskStorageActor], driver, url, user, password), "task-storage")
   val resultStorage = system.actorOf(Props(classOf[ResultStorageActor], driver, url, user, password), "result-storage")
   val manager = system.actorOf(Props(classOf[TaskManager], resultStorage), "task-manager")
 
+  val googleTask = Task(1, PingNative, "Google", new URI("www.google.com"), 5.seconds, true)
+  taskStorage ! CreateTask(googleTask)
+  manager ! googleTask
+
   // stop this sample after 1 minute
-  system.scheduler.scheduleOnce(60.seconds, new Runnable {
+  system.scheduler.scheduleOnce(20.seconds, new Runnable {
     override def run(): Unit = {
-//      system.stop(taskStorage)
-      system.stop(resultStorage)
+      manager ! PoisonPill
+      taskStorage ! PoisonPill
+      resultStorage ! PoisonPill
       system.terminate()
     }
   })
-
-  manager ! googleTask
 }

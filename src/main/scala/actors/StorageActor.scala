@@ -16,7 +16,7 @@ object StorageCommands {
   /** Results Answer */
   case class ResultAck(result: TaskResult)
 
-  case class ResultListAck(results: List[TaskResult])
+  case class ResultListAck(results: Seq[TaskResult])
 
   /** Task */
   case object ListTasks
@@ -32,7 +32,7 @@ object StorageCommands {
   /** Task Answer */
   case class TaskAck(task: Option[Task])
 
-  case class TaskListAck(tasks: List[Task])
+  case class TaskListAck(tasks: Seq[Task])
 
   case class TaskDeletedAck(value: Int)
 }

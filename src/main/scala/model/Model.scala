@@ -1,9 +1,8 @@
 package model
 
-import java.sql.Timestamp
 import java.util.Date
 
-import scala.concurrent.duration.{Duration, FiniteDuration}
+import scala.concurrent.duration.FiniteDuration
 
 sealed trait PingMethod
 

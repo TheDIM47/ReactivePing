@@ -1,0 +1,18 @@
+[
+  {
+    "method": "PingNative",
+    "name": "test",
+    "uri": "localhost",
+    "id": 2,
+    "period": 1000,
+    "active": true
+  },
+  {
+    "method": "PingNative",
+    "name": "test1",
+    "uri": "127.0.0.1",
+    "id": 1,
+    "period": 1000,
+    "active": true
+  }
+]

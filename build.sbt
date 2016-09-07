@@ -11,7 +11,7 @@ scalacOptions in ThisBuild := Seq("-feature", "-unchecked", "-deprecation", "-en
 (fork in Test) := true
 
 libraryDependencies ++= {
-  val akkaVersion = "2.4.9"
+  val akkaVersion = "2.4.10"
 //  val json4sVersion = "3.4.0"
   val dispatchVersion = "0.11.3"
   val slf4jVersion = "1.7.21"
